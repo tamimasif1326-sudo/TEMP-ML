@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TempMail Generator</title>
+  <style>
+    /* === GENERAL STYLES === */
+    :root {
+      --primary-purple: #6366f1;
+      --deep-purple: #8b5cf6;
+      --primary-blue: #3b82f6;
+      --light-blue: #60a5fa;
+      --bg-light: #f8f9fa;
+      --bg-dark: #1a1a2e;
+      --text-light: #ffffff;
+      --text-dark: #333333;
+      --card-bg: #ffffff;
+      --shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+      --hover-lift: 0 8px 25px rgba(99, 102, 241, 0.25);
+      --border-radius: 1rem;
+      --transition: all 0.3s ease;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', 'Roboto', sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-dark);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      box-sizing: border-box;
+      transition: background-color 0.4s ease;
+      position: relative;
+    }
+
+    body.dark-mode {
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.8s ease forwards;
+      z-index: 2;
+    }
+
+    /* === WATERMARK === */
+    .watermark {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      font-size: 14px;
+      color: rgba(99, 102, 241, 0.3);
+      font-weight: bold;
+      pointer-events: none;
+      z-index: 1;
+      text-align: right;
+    }
+
+    .watermark a {
+      color: rgba(139, 92, 246, 0.5);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .watermark a:hover {
+      text-decoration: underline;
+      color: rgba(139, 92, 246, 0.8);
+    }
+
+    /* === CARD STYLES === */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      transition: var(--transition);
+    }
+
+    body.dark-mode .card {
+      background: #2a2a4a;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2);
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--hover-lift);
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--primary-purple);
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    /* === EMAIL GENERATOR STYLES === */
+    .email-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 1rem;
+    }
+
+    .email-input {
+      flex: 1;
+      padding: 1rem;
+      font-size: 1.2rem;
+      border: 2px solid var(--primary-purple);
+      border-radius: var(--border-radius);
+      outline: none;
+      background-color: #f0f0ff;
+      color: var(--text-dark);
+      text-align: center;
+      transition: var(--transition);
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    body.dark-mode .email-input {
+      background-color: #3a3a5a;
+      color: var(--text-light);
+      border-color: var(--deep-purple);
+    }
+
+    .email-input:focus {
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn {
+      padding: 0.8rem 1.5rem;
+      border: none;
+      border-radius: var(--border-radius);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-purple), var(--primary-blue));
+      color: white;
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #9333ea, #2563eb);
+      color: white;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: var(--hover-lift);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-copy:hover {
+      background: linear-gradient(135deg, #86efac, #34d399);
+    }
+
+    .btn-copy.copied {
+      background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .pulse {
+      animation: pulse 1.5s infinite;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease;
+    }
+
+    .slide-in {
+      animation: slideInRight 0.4s ease forwards;
+    }
+
+    /* === HISTORY & INBOX STYLES === */
+    .history-container {
+      margin-top: 1rem;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 1rem;
+    }
+
+    body.dark-mode .history-container {
+      border-top-color: #4a4a7a;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .history-item {
+      padding: 0.75rem;
+      background: #f3f4f6;
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    body.dark-mode .history-item {
+      background: #333355;
+    }
+
+    .history-item:hover {
+      background: var(--primary-purple);
+      color: white;
+    }
+
+    body.dark-mode .history-item:hover {
+      background: var(--deep-purple);
+    }
+
+    .clear-history {
+      color: #ef4444;
+      font-size: 0.8rem;
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.3rem;
+    }
+
+    .clear-history:hover {
+      background: #fee2e2;
+    }
+
+    body.dark-mode .clear-history:hover {
+      background: #441111;
+    }
+
+    .inbox-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .message-item {
+      padding: 1rem;
+      border-bottom: 1px solid #e0e0ff;
+      cursor: pointer;
+      transition: var(--transition);
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+      background: #f9f9ff;
+      opacity: 0;
+    }
+
+    body.dark-mode .message-item {
+      background: #333355;
+      border-bottom-color: #4a4a7a;
+    }
+
+    .message-item:hover {
+      background: linear-gradient(135deg, #e0e0ff, #d0d0ff);
+      transform: translateX(5px);
+    }
+
+    body.dark-mode .message-item:hover {
+      background: #444466;
+    }
+
+    .message-item.fade-in {
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .message-subject {
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .message-from {
+      font-size: 0.9rem;
+      color: var(--primary-blue);
+      margin: 0.25rem 0;
+    }
+
+    body.dark-mode .message-from {
+      color: var(--light-blue);
+    }
+
+    .message-date {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin: 0;
+    }
+
+    body.dark-mode .message-date {
+      color: #9ca3af;
+    }
+
+    .message-content {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f3f4f6;
+      border-radius: 0.5rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      border-left: 4px solid var(--primary-purple);
+    }
+
+    body.dark-mode .message-content {
+      background: #2d2d4d;
+      color: #e0e0ff;
+    }
+
+    .no-messages {
+      text-align: center;
+      color: #6b7280;
+      font-style: italic;
+      padding: 2rem 0;
+    }
+
+    body.dark-mode .no-messages {
+      color: #9ca3af;
+    }
+
+    /* === TOOLTIP === */
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 120px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -60px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 0.8rem;
+    }
+
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    /* === DARK MODE TOGGLE === */
+    .theme-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--primary-purple);
+      transition: var(--transition);
+    }
+
+    .theme-toggle:hover {
+      transform: rotate(30deg);
+    }
+
+    /* === ANIMATIONS === */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    /* === RESPONSIVE === */
+    @media (max-width: 600px) {
+      .container {
+        padding: 10px;
+      }
+      .card {
+        padding: 1.2rem;
+      }
+      .email-group {
+        flex-direction: column;
+      }
+      .btn {
+        font-size: 0.9rem;
+        padding: 0.7rem 1rem;
+      }
+    }
+
+    /* === LOADER === */
+    .loader {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--primary-purple);
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      margin-right: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .flex-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .fullscreen-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      color: white;
+      font-size: 1.5rem;
+    }
+
+    .fullscreen-loader.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* === MESSAGE CONTENT STYLES === */
+    .message-html {
+      border: 1px solid #e5e7eb;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      background: white;
+      min-height: 100px;
+    }
+
+    body.dark-mode .message-html {
+      background: #1e1e2e;
+      border-color: #3a3a5a;
+    }
+
+    .pre-text {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<button id="themeToggle" class="theme-toggle">🌙</button>
+
+<div class="container">
+  <h1>🔐 TempMail Generator</h1>
+
+  <div class="card">
+    <div class="email-group">
+      <input type="text" id="emailInput" class="email-input" placeholder="Your temporary email will appear here..." readonly />
+      <button id="copyBtn" class="btn btn-primary tooltip">
+        📋 Copy
+        <span class="tooltip-text">Click to copy email</span>
+      </button>
+    </div>
+    <button id="generateBtn" class="btn btn-secondary" style="width: 100%; margin-top: 1rem;">
+      🚀 Generate New Email
+    </button>
+
+    <!-- History Section -->
+    <div class="history-container">
+      <div class="history-header">
+        <h3>🕒 Recent Emails</h3>
+        <span id="clearHistory" class="clear-history">Clear All</span>
+      </div>
+      <div id="emailHistory"></div>
+      <p id="noHistory" class="no-messages" style="margin: 0.5rem 0; font-size: 0.9rem;">No history yet</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="inbox-header">
+      <h2>📬 Inbox</h2>
+      <button id="refreshBtn" class="btn btn-primary">
+        🔄 Refresh
+      </button>
+    </div>
+    <div id="inboxLoading" class="flex-center" style="padding: 1rem;">
+      <div class="loader"></div> <span>Fetching messages...</span>
+    </div>
+    <div id="inboxMessages"></div>
+    <p id="noMessages" class="no-messages">No messages yet. Share your email and wait!</p>
+  </div>
+
+  <div id="messageContent" class="card hidden">
+    <h3 id="contentSubject"></h3>
+    <p><strong>From:</strong> <span id="contentFrom"></span></p>
+    <p><strong>Date:</strong> <span id="contentDate"></span></p>
+    <hr />
+    <div id="contentBody"></div>
+  </div>
+</div>
+
+<!-- Watermark -->
+<div class="watermark">
+  Made by <a href="https://t.me/TAMIM_C0DEx" target="_blank">@TAMIM_C0DEx</a><br>
+  Join: <a href="https://t.me/tamimarningofficial" target="_blank">Telegram Group</a>
+</div>
+
+<!-- Fullscreen loader -->
+<div id="fullscreenLoader" class="fullscreen-loader hidden">
+  <div class="loader"></div> <span>Generating email...</span>
+</div>
+
+<script>
+  // Dom elements
+  const emailInput = document.getElementById('emailInput');
+  const copyBtn = document.getElementById('copyBtn');
+  const generateBtn = document.getElementById('generateBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const inboxMessages = document.getElementById('inboxMessages');
+  const noMessages = document.getElementById('noMessages');
+  const inboxLoading = document.getElementById('inboxLoading');
+  const messageContent = document.getElementById('messageContent');
+  const contentSubject = document.getElementById('contentSubject');
+  const contentFrom = document.getElementById('contentFrom');
+  const contentDate = document.getElementById('contentDate');
+  const contentBody = document.getElementById('contentBody');
+  const themeToggle = document.getElementById('themeToggle');
+  const fullscreenLoader = document.getElementById('fullscreenLoader');
+  const emailHistory = document.getElementById('emailHistory');
+  const noHistory = document.getElementById('noHistory');
+  const clearHistory = document.getElementById('clearHistory');
+
+  // Domains from 1secmail
+  const domains = ['1secmail.com', '1secmail.org', 'wwjmp.com', 'esiix.com'];
+
+  // Generate random username
+  function generateUsername() {
+    const prefixes = ['spark', 'rocket', 'aeram', 'user', 'gen', 'mail', 'temp', 'quick', 'fast', 'new'];
+    const suffixes = ['box', 'hub', 'gen', 'mail', 'user', 'spot', 'flow', 'link', 'drop', 'inbox'];
+    const num = Math.floor(Math.random() * 900) + 100;
+    return prefixes[Math.floor(Math.random() * prefixes.length)] +
+           suffixes[Math.floor(Math.random() * suffixes.length)] +
+           num;
+  }
+
+  // Generate full email
+  function generateEmail() {
+    const username = generateUsername();
+    const domain = domains[Math.floor(Math.random() * domains.length)];
+    return `${username}@${domain}`;
+  }
+
+  // Save email to localStorage
+  function saveEmail(email) {
+    let history = JSON.parse(localStorage.getItem('tempEmailHistory') || '[]');
+    // Add to front if not already there
+    if (!history.includes(email)) {
+      history.unshift(email);
+      if (history.length > 10) history = history.slice(0, 10);
+      localStorage.setItem('tempEmailHistory', JSON.stringify(history));
+    }
+    localStorage.setItem('tempEmail', email);
+    loadHistory();
+  }
+
+  // Load current email
+  function loadEmail() {
+    return localStorage.getItem('tempEmail');
+  }
+
+  // Load email history
+  function loadHistory() {
+    const history = JSON.parse(localStorage.getItem('tempEmailHistory') || '[]');
+    emailHistory.innerHTML = '';
+    if (history.length === 0) {
+      noHistory.style.display = 'block';
+    } else {
+      noHistory.style.display = 'none';
+      history.forEach(email => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.textContent = email;
+        item.onclick = () => {
+          emailInput.value = email;
+          fetchInbox(email);
+        };
+        emailHistory.appendChild(item);
+      });
+    }
+  }
+
+  // Clear history
+  function clearEmailHistory() {
+    localStorage.removeItem('tempEmailHistory');
+    loadHistory();
+  }
+
+  // Copy email to clipboard
+  async function copyEmail() {
+    const email = emailInput.value;
+    if (!email) return;
+
+    try {
+      await navigator.clipboard.writeText(email);
+      copyBtn.innerHTML = '✅ Copied!';
+      copyBtn.classList.add('copied');
+      setTimeout(() => {
+        copyBtn.innerHTML = '📋 Copy';
+        copyBtn.classList.remove('copied');
+      }, 2000);
+    } catch (err) {
+      alert('Failed to copy email.');
+    }
+  }
+
+  // Show fullscreen loader
+  function showLoader(message = 'Generating email...') {
+    fullscreenLoader.querySelector('span').textContent = message;
+    fullscreenLoader.classList.remove('hidden');
+  }
+
+  // Hide fullscreen loader
+  function hideLoader() {
+    fullscreenLoader.classList.add('hidden');
+  }
+
+  // Generate new email
+  async function handleGenerate() {
+    showLoader('Generating...');
+    await new Promise(resolve => setTimeout(resolve, 500)); // slight delay for animation
+    const email = generateEmail();
+    emailInput.value = email;
+    saveEmail(email);
+    emailInput.classList.add('pulse');
+    setTimeout(() => emailInput.classList.remove('pulse'), 1000);
+    hideLoader();
+    fetchInbox(email);
+  }
+
+  // Fetch inbox
+  async function fetchInbox(email) {
+    if (!email) return;
+    inboxLoading.style.display = 'block';
+    inboxMessages.innerHTML = '';
+    noMessages.style.display = 'none';
+    messageContent.classList.add('hidden');
+
+    const [login, domain] = email.split('@');
+    const url = `https://www.1secmail.com/api/v1/?action=getMessages&login=${login}&domain=${domain}`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Network response was not ok');
+
+      const messages = await response.json();
+      inboxLoading.style.display = 'none';
+
+      if (messages.length === 0) {
+        noMessages.style.display = 'block';
+      } else {
+        displayMessages(messages, login, domain);
+      }
+    } catch (error) {
+      inboxLoading.style.display = 'none';
+      noMessages.textContent = 'Failed to load messages. API may be blocked. Try later.';
+      noMessages.style.display = 'block';
+      console.error('Fetch error:', error);
+    }
+  }
+
+  // Display messages in inbox
+  function displayMessages(messages, login, domain) {
+    inboxMessages.innerHTML = '';
+    messages.forEach((msg, index) => {
+      const messageEl = document.createElement('div');
+      messageEl.className = 'message-item';
+      setTimeout(() => {
+        messageEl.classList.add('fade-in');
+      }, 100 * index);
+
+      const subject = msg.subject || '(No Subject)';
+      const from = msg.from;
+      const date = new Date(msg.date).toLocaleString();
+
+      messageEl.innerHTML = `
+        <p class="message-subject">${subject}</p>
+        <p class="message-from">${from}</p>
+        <p class="message-date">${date}</p>
+      `;
+
+      messageEl.addEventListener('click', () => openMessage(msg.id, login, domain, subject, from, date));
+      inboxMessages.appendChild(messageEl);
+    });
+  }
+
+  // Open message and fetch content
+  async function openMessage(id, login, domain, subject, from, date) {
+    messageContent.classList.add('hidden');
+    contentBody.innerHTML = '<div class="flex-center"><div class="loader"></div> Loading message...</div>';
+    messageContent.classList.remove('hidden');
+    contentSubject.textContent = subject;
+    contentFrom.textContent = from;
+    contentDate.textContent = date;
+
+    const url = `https://www.1secmail.com/api/v1/?action=readMessage&login=${login}&domain=${domain}&id=${id}`;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to load message');
+
+      const data = await response.json();
+      contentBody.innerHTML = '';
+
+      if (data.htmlBody) {
+        const iframe = document.createElement('iframe');
+        iframe.srcdoc = data.htmlBody;
+        iframe.style.width = '100%';
+        iframe.style.height = '400px';
+        iframe.style.border = 'none';
+        contentBody.appendChild(iframe);
+      } else if (data.textBody) {
+        const pre = document.createElement('pre');
+        pre.className = 'pre-text';
+        pre.textContent = data.textBody;
+        contentBody.appendChild(pre);
+      } else {
+        contentBody.innerHTML = '<p>No content available.</p>';
+      }
+    } catch (error) {
+      contentBody.innerHTML = '<p>Failed to load message content. Try again later.</p>';
+      console.error('Message fetch error:', error);
+    }
+  }
+
+  // Auto refresh every 15 seconds
+  let refreshInterval;
+
+  function startAutoRefresh(email) {
+    clearInterval(refreshInterval);
+    refreshInterval = setInterval(() => {
+      if (email) fetchInbox(email);
+    }, 15000);
+  }
+
+  // Theme toggle
+  function toggleTheme() {
+    document.body.classList.toggle('dark-mode');
+    if (document.body.classList.contains('dark-mode')) {
+      themeToggle.textContent = '☀️';
+      localStorage.setItem('theme', 'dark');
+    } else {
+      themeToggle.textContent = '🌙';
+      localStorage.setItem('theme', 'light');
+    }
+  }
+
+  // Load saved theme
+  function loadTheme() {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.body.classList.add('dark-mode');
+      themeToggle.textContent = '☀️';
+    }
+  }
+
+  // Init
+  document.addEventListener('DOMContentLoaded', () => {
+    loadTheme();
+    loadHistory();
+
+    const savedEmail = loadEmail();
+    if (savedEmail) {
+      emailInput.value = savedEmail;
+      fetchInbox(savedEmail);
+      startAutoRefresh(savedEmail);
+    }
+
+    // Event listeners
+    copyBtn.addEventListener('click', copyEmail);
+    generateBtn.addEventListener('click', handleGenerate);
+    refreshBtn.addEventListener('click', () => {
+      const email = emailInput.value;
+      if (email) fetchInbox(email);
+    });
+    themeToggle.addEventListener('click', toggleTheme);
+    clearHistory.addEventListener('click', clearEmailHistory);
+
+    // Auto-refresh if email exists
+    if (savedEmail) {
+      startAutoRefresh(savedEmail);
+    }
+  });
+</script>
+</body>
+</html>
